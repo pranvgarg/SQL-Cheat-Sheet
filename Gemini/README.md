@@ -518,4 +518,4 @@ A `LATERAL` join (or `CROSS APPLY`/`OUTER APPLY` in SQL Server) is a powerful fe
     FROM LoginGroups
     GROUP BY user_id, grp
     HAVING COUNT(*) >= 3;
-    ```
+    ```s
