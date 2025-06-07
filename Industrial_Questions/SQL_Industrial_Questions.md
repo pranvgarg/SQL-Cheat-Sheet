@@ -9,7 +9,7 @@ This document provides a comprehensive collection of real-world SQL questions en
 3. [Supply Chain Management](#supply-chain-management)
 4. [Healthcare Analytics](#healthcare-analytics)
 5. [Customer Segmentation](#customer-segmentation)
-6. [Interview Questions](#interview-questions)
+6. [SQL Interview Questions & Solutions](#sql-interview-questions-solutions)
 7. [Advanced Analytics](#advanced-analytics)
 
 ## How to Use This Guide
@@ -23,16 +23,68 @@ This document provides a comprehensive collection of real-world SQL questions en
 
 ### Question 1: Customer Purchase Funnel Analysis
 
-**Business Context:**  
-Understanding the customer journey from initial product view to final purchase is crucial for optimizing conversion rates. This analysis helps identify where potential customers drop off in the sales funnel.
+**Interviewer's Context:**
+"Let's analyze our e-commerce platform's purchase funnel. We track user interactions through different stages: viewing a product, adding it to cart, starting checkout, and completing the purchase. We need to understand where we're losing potential customers in this journey."
 
-**Problem Statement:**  
-Calculate the conversion rates between each step of the purchase funnel (product view → add to cart → checkout start → purchase completion) over the last 7 days.
+**Data Available:**
+
+- We have a `user_events` table that logs all user interactions
+- Each event has a timestamp, session ID, and event type
+- The funnel steps are tracked as distinct event types
+- We're interested in the last 7 days of data
 
 **Table Structure:**
 
 ```sql
-user_events (
+CREATE TABLE user_events (
+    event_id INT,
+    session_id VARCHAR(50),      -- Unique identifier for user session
+    user_id INT,                -- User identifier (can be NULL for non-logged-in users)
+    event_type VARCHAR(50),     -- 'product_view', 'add_to_cart', 'checkout_started', 'purchase_completed'
+    event_date TIMESTAMP,       -- When the event occurred
+    product_id INT,             -- The product involved (if applicable)
+    -- other relevant columns
+);
+```
+
+**Sample Data:**
+
+```sql
+-- Sample data for user_events table
+INSERT INTO user_events VALUES
+    (1, 'sess_abc', 123, 'product_view', '2023-05-01 10:15:22', 101),
+    (2, 'sess_abc', 123, 'add_to_cart', '2023-05-01 10:16:05', 101),
+    (3, 'sess_abc', 123, 'checkout_started', '2023-05-01 10:20:30', 101),
+    (4, 'sess_abc', 123, 'purchase_completed', '2023-05-01 10:22:45', 101),
+    (5, 'sess_def', 456, 'product_view', '2023-05-02 14:30:00', 205),
+    (6, 'sess_def', 456, 'add_to_cart', '2023-05-02 14:31:15', 205),
+    (7, 'sess_ghi', NULL, 'product_view', '2023-05-03 09:05:33', 101);
+```
+
+**Question for the Candidate:**
+
+"Can you help us calculate the conversion rates between each step of our purchase funnel for the last 7 days? We want to see what percentage of users move from one step to the next in the funnel. The funnel steps in order are: product view → add to cart → checkout start → purchase completion. We should get one row showing the total sessions and the conversion rates between each step."
+
+**Expected Output Format:**
+
+```sql
+total_sessions | view_rate | cart_add_rate | checkout_rate | conversion_rate
+--------------|-----------|---------------|---------------|----------------
+     10,245  |   85.42   |     42.15     |     68.30     |     75.25
+```
+
+**Clarifications (if asked by candidate):**
+
+- A 'session' is a unique visit to the site
+- Users can view multiple products in a session, but we count unique sessions per step
+- We're only interested in the first occurrence of each event type per session
+- The rates should be calculated as percentages (0-100)
+- Round all percentages to 2 decimal places
+
+**Table Structure:**
+
+```sql
+CREATE TABLE user_events (
     event_id INT,
     session_id VARCHAR(50),
     user_id INT,
@@ -44,7 +96,7 @@ user_events (
 
 **Expected Output:**
 
-```
+```sql
 total_sessions | view_rate | cart_add_rate | checkout_rate | conversion_rate
 --------------|-----------|---------------|---------------|----------------
      10,245  |   85.42   |     42.15     |     68.30     |     75.25
@@ -83,35 +135,158 @@ This query helps identify the weakest points in the conversion funnel. For examp
 
 ## Financial Reporting
 
-### Question 3: Monthly Revenue Growth
+### Question 2: Monthly Revenue Growth Analysis
 
-**Business Context:**
+**Interviewer's Context:**
+"We need to analyze our revenue trends to understand our business performance better. Specifically, we want to track how our monthly revenue is growing or shrinking compared to the previous month. This will help us identify seasonal patterns and measure the impact of our business initiatives."
 
-Tracking revenue growth is essential for financial planning and performance evaluation. This analysis helps identify trends and make data-driven business decisions.
-
-**Problem Statement:**
-
-Calculate the month-over-month revenue growth percentage for the current year, showing both the actual revenue and the percentage change from the previous month.
+**Data Available:**
+- We have an `orders` table containing all customer orders
+- Each order has an order date and total amount
+- We need to analyze data for the current calendar year
+- Some months might have zero revenue (no orders)
 
 **Table Structure:**
+
 ```sql
 orders (
-    order_id INT,
-    order_date TIMESTAMP,
-    amount DECIMAL(10,2),
+    order_id INT PRIMARY KEY,
     customer_id INT,
-    status VARCHAR(20)
+    order_date TIMESTAMP,      -- When the order was placed
+    total_amount DECIMAL(10,2), -- Total order amount in USD
+    status VARCHAR(20),        -- 'completed', 'returned', 'cancelled', etc.
+    -- other order details
 )
 ```
 
-**Expected Output:**
+**Sample Data:**
+
+```sql
+| order_id | customer_id |       order_date       | total_amount |   status   |
+|----------|-------------|------------------------|--------------|------------|
+|    1001 |        4567 | 2023-01-15 10:30:00   |      129.99  | 'completed'|
+|    1002 |        2345 | 2023-01-18 14:22:10   |       89.50  | 'completed'|
+|    1003 |        4567 | 2023-02-02 09:15:33   |      210.00  | 'completed'|
+|    1004 |        1234 | 2023-02-14 16:45:22   |       45.99  | 'returned' |
+|    1005 |        7890 | 2023-03-01 11:20:15   |      175.50  | 'completed'|
+|    1006 |        3456 | 2023-03-15 13:05:44   |      299.99  | 'completed'|
+|    1007 |        2345 | 2023-03-20 17:30:00   |       59.99  | 'completed'|
 ```
-  month   | revenue  | prev_month_revenue | mom_growth_pct
-----------|----------|-------------------|--------------
- 2023-01  | 125,430  |       NULL        |     NULL
- 2023-02  | 138,750  |     125,430       |    10.63
- 2023-03  | 145,200  |     138,750       |     4.65
+
+**Question for the Candidate:**
+
+"Can you help us analyze our monthly revenue growth for the current year? We'd like to see:
+
+1. The total revenue for each month
+2. The month-over-month growth percentage
+3. The absolute change in revenue compared to the previous month
+
+Please exclude any orders that were returned or cancelled. We should have one row per month, ordered chronologically, with the most recent month last. For the first month, the growth percentage and absolute change should be NULL since there's no previous month to compare with."
+
+**Expected Output Format:**
+
+```sql
+  year  | month | monthly_revenue | revenue_growth_pct | revenue_change_abs
+--------|-------|-----------------|--------------------|------------------
+  2023  |   1   |     219.49      |        NULL        |       NULL
+  2023  |   2   |     210.00      |       -4.32        |       -9.49
+  2023  |   3   |     535.48      |      155.01        |      325.48
 ```
+
+**Clarifications (if asked by candidate):**
+- Round monetary values to 2 decimal places
+- Round percentage changes to 2 decimal places
+- Only include orders with status 'completed'
+- If a month has no orders, show it with $0 revenue
+- The growth percentage formula is: ((current_month - previous_month) / previous_month) * 100
+
+**Solution Approach:**
+
+1. First, calculate the monthly revenue by filtering for completed orders and grouping by year and month
+2. Use window functions to access the previous month's revenue for comparison
+3. Calculate both the absolute change and percentage growth
+4. Handle edge cases like the first month (no previous month to compare)
+
+**SQL Solution:**
+
+```sql
+WITH monthly_revenue AS (
+    SELECT 
+        EXTRACT(YEAR FROM order_date) AS year,
+        EXTRACT(MONTH FROM order_date) AS month,
+        ROUND(SUM(total_amount)::numeric, 2) AS monthly_revenue
+    FROM 
+        orders
+    WHERE 
+        status = 'completed'
+        AND EXTRACT(YEAR FROM order_date) = EXTRACT(YEAR FROM CURRENT_DATE)
+    GROUP BY 
+        EXTRACT(YEAR FROM order_date),
+        EXTRACT(MONTH FROM order_date)
+)
+SELECT 
+    year,
+    month,
+    monthly_revenue,
+    ROUND(
+        ((monthly_revenue - LAG(monthly_revenue) OVER (ORDER BY year, month)) / 
+        LAG(monthly_revenue) OVER (ORDER BY year, month) * 100)::numeric, 
+        2
+    ) AS revenue_growth_pct,
+    ROUND(
+        (monthly_revenue - LAG(monthly_revenue) OVER (ORDER BY year, month))::numeric, 
+        2
+    ) AS revenue_change_abs
+FROM 
+    monthly_revenue
+ORDER BY 
+    year, month;
+```
+
+**Key Learning Points:**
+- Using Common Table Expressions (CTEs) for better query organization
+- Window functions (LAG) to access data from previous rows
+- Handling NULL values for the first month's comparison
+- Proper type casting for accurate decimal calculations
+- Filtering for only completed orders to get accurate revenue
+- Grouping by both year and month to handle multi-year data correctly
+
+**Potential Follow-up Questions:**
+1. How would you modify this query to show year-over-year growth instead of month-over-month?
+2. How would you handle months with no orders in the results?
+3. How could you optimize this query for a very large orders table?
+
+**Alternative Solutions:**
+- Using self-joins instead of window functions (less efficient)
+- Creating a date dimension table for handling months with no orders
+- Using a stored procedure for more complex business logic
+
+### Expected Output
+
+```sql
+  year  | month | monthly_revenue | revenue_growth_pct | revenue_change_abs
+--------|-------|-----------------|--------------------|------------------
+  2023  |   1   |    125430.00    |        NULL        |       NULL
+  2023  |   2   |    138750.00    |       10.63        |      13320.00
+  2023  |   3   |    145200.00    |        4.65        |       6450.00
+  2023  |   4   |          0.00   |     -100.00        |    -145200.00
+  2023  |   5   |     98500.00    |         -          |      98500.00
+  2023  |   6   |    112300.00    |       14.01        |      13800.00
+  2023  |   7   |    125000.00    |       11.31        |      12700.00
+  2023  |   8   |    140000.00    |       12.00        |      15000.00
+  2023  |   9   |    135000.00    |       -3.57        |      -5000.00
+  2023  |  10   |    150000.00    |       11.11        |      15000.00
+  2023  |  11   |    175000.00    |       16.67        |      25000.00
+  2023  |  12   |    250000.00    |       42.86        |      75000.00
+```
+
+### Notes on the Output
+
+- The first month (January 2023) shows NULL for growth metrics as there's no previous month to compare
+- April 2023 shows $0 revenue (no orders that month)
+- The growth percentage is calculated based on the previous month's revenue
+- All monetary values are rounded to 2 decimal places
+- The data shows a seasonal pattern with higher revenue at year-end
 
 **Solution:**
 ```sql
@@ -146,9 +321,10 @@ ORDER BY month;
 **Business Insight:**  
 This query helps identify seasonal patterns and growth trends. For example, if March shows a significant growth percentage, it might indicate the success of a marketing campaign or seasonal demand.
 
-## Financial Reporting
+## Financial Reporting - Advanced Metrics
 
-### Question 3: Monthly Revenue Growth
+### Question 3: Monthly Revenue Growth Analysis
+
 **Business Problem:** Calculate month-over-month revenue growth percentage.
 
 ```sql
@@ -203,7 +379,8 @@ orders (
 
 **Expected Output:**
 
-```
+```sql
+-- Expected output format for Customer Lifetime Value query
 acquisition_channel | total_customers | total_orders | total_revenue | avg_orders | avg_revenue | estimated_90day_clv
 -------------------|-----------------|--------------|---------------|------------|-------------|-------------------
 Organic Search    | 1,250          | 3,450        | 172,500.00    | 2.76       | 138.00      | 34.50
@@ -228,6 +405,7 @@ WITH customer_metrics AS (
       AND o.status = 'completed'
     GROUP BY 1
 )
+
 SELECT
     acquisition_channel,
     total_customers,
@@ -270,6 +448,7 @@ inventory (
     warehouse_id INT
 )
 
+-- Table structure for product catalog
 products (
     id INT,
     name VARCHAR(100),
@@ -277,6 +456,7 @@ products (
     price DECIMAL(10,2)
 )
 
+-- Table structure for order line items
 order_items (
     id INT,
     order_id INT,
@@ -288,7 +468,8 @@ order_items (
 
 **Expected Output:**
 
-```
+```sql
+-- Expected output format for Inventory Turnover query
   category   |  month  | inventory_turnover_ratio
 -------------|---------|-------------------------
  Electronics | 2023-01 |          4.25
@@ -340,7 +521,9 @@ A higher ratio indicates faster inventory turnover, which is generally positive.
 ### Question 6: Supplier Performance Analysis
 **Business Problem:** Identify suppliers with late shipments.
 
+
 ```sql
+-- Supplier performance analysis query
 SELECT
     s.supplier_name,
     COUNT(DISTINCT po.id) as total_orders,
@@ -374,7 +557,9 @@ LIMIT 10;
 ### Question 7: Patient Readmission Rate
 **Business Problem:** Calculate 30-day readmission rates by department.
 
+
 ```sql
+-- Patient readmission analysis query
 WITH readmissions AS (
     SELECT
         a1.patient_id,
@@ -388,6 +573,8 @@ WITH readmissions AS (
         AND a1.discharge_date < a2.admission_date
         AND DATEDIFF(day, a1.discharge_date, a2.admission_date) <= 30
 )
+
+-- Calculate readmission rates by department
 SELECT
     department,
     COUNT(DISTINCT patient_id) as total_patients,
@@ -565,9 +752,9 @@ LIMIT 100;
 These examples demonstrate how SQL can be used to solve complex business problems across various industries. The queries include advanced SQL features like window functions, common table expressions (CTEs), complex joins, and conditional logic that are commonly used in industrial settings.
 
 
-# SQL Interview Questions & Solutions
+### SQL Interview Questions & Solutions
 
-## Question 1: Employee Filtering by Salary and Tenure
+### Question 1: Employee Filtering by Salary and Tenure
 
 **Interview Context:**
 "We have an Employee table with salary and tenure information. As a data analyst, you need to identify high-performing employees who are still relatively new to the company. Specifically, I want you to find employees who earn more than $2000 and have been with us for less than 10 months. This will help us understand our high-potential early-career talent."
